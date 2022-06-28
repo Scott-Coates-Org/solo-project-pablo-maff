@@ -6,10 +6,18 @@ import Utf8 from 'crypto-js/enc-utf8'
 
 const Host = () => {
   const [hostAuthData, setHostAuthData] = useState('')
-  const [token, setToken] = useState('')
   const [songData, setSongData] = useState()
   const [me, setMe] = useState()
   const [hostPlaylists, setHostPlaylists] = useState()
+  const [hostUserId, setHostUserId] = useState()
+  const [searchedSongs, setSearchedSongs] = useState([])
+  const [searchInput, setSearchInput] = useState('')
+  const [addedSongs, setAddedSongs] = useState([])
+  const [selectedPlaylist, setSelectedPlaylist] = useState()
+  const [selectedPlaylistSongs, setSelectedPlaylistSongs] = useState([])
+
+  console.log('hostPlaylists', hostPlaylists)
+  console.log('selectedPlaylist', selectedPlaylist)
 
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -112,7 +120,10 @@ const Host = () => {
       },
     }
 
-    axios(options).then((response) => setMe(response.data))
+    axios(options).then((response) => {
+      setMe(response.data)
+      setHostUserId(response.data.id)
+    })
   }
 
   const getPlaylists = () => {
@@ -126,8 +137,108 @@ const Host = () => {
       },
     }
 
-    axios(options).then((response) => setHostPlaylists(response.data))
+    axios(options).then((response) => setHostPlaylists(response.data.items))
   }
+
+  const createPlaylist = () => {
+    const options = {
+      method: 'POST',
+      url: `https://api.spotify.com/v1/users/${hostUserId}/playlists`,
+      headers: {
+        // https://github.com/brix/crypto-js/issues/189
+        // https://stackoverflow.com/questions/48524452/base64-encoder-via-crypto-js
+        Authorization: `${hostAuthData.token_type} ${hostAuthData.access_token}`,
+      },
+      data: {
+        name: 'new playlist',
+        public: false, // to create a collaborative playlist public needs to be set to false
+        collaborative: true,
+        description: 'This is my new awesome playlist',
+      },
+    }
+
+    axios(options).then((response) => setSelectedPlaylist(response.data))
+  }
+
+  const searchSongs = (e) => {
+    e.preventDefault()
+    const options = {
+      method: 'GET',
+      url: `https://api.spotify.com/v1/search?q=name:${searchInput}&type=track&limit=10`,
+      headers: {
+        // https://github.com/brix/crypto-js/issues/189
+        // https://stackoverflow.com/questions/48524452/base64-encoder-via-crypto-js
+        Authorization: `${hostAuthData.token_type} ${hostAuthData.access_token}`,
+      },
+    }
+
+    axios(options).then((response) =>
+      setSearchedSongs(searchedSongs.concat(response.data.tracks.items))
+    ) // pagination links on response.data
+  }
+
+  const handleSearchInput = (e) => {
+    setSearchInput(e.target.value)
+  }
+
+  // Add possibility of adding multiple songs at the same time. Add the songs to an array state and pass it to uris
+  const addSong = (song) => {
+    const options = {
+      method: 'POST',
+      url: `https://api.spotify.com/v1/playlists/${selectedPlaylist.id}/tracks`,
+      headers: {
+        Authorization: `${hostAuthData.token_type} ${hostAuthData.access_token}`,
+      },
+      data: {
+        uris: [song.uri],
+      },
+    }
+
+    axios(options).then((response) =>
+      setAddedSongs(addedSongs.concat(response.data))
+    )
+  }
+
+  const selectPlaylist = (playlist) => {
+    setSelectedPlaylist(playlist)
+  }
+
+  const getPlaylistItems = () => {
+    const options = {
+      method: 'GET',
+      url: `https://api.spotify.com/v1/playlists/${selectedPlaylist.id}/tracks`,
+      headers: {
+        Authorization: `${hostAuthData.token_type} ${hostAuthData.access_token}`,
+      },
+    }
+
+    axios(options).then((response) =>
+      setSelectedPlaylistSongs(response.data.items)
+    ) // pagination links on response.data
+  }
+
+  // Make it possible to delete many songs at the same time by passing an array with the uris to data
+  const deleteSong = (song) => {
+    console.log('uri', song)
+    const options = {
+      method: 'DELETE',
+      url: `https://api.spotify.com/v1/playlists/${selectedPlaylist.id}/tracks`,
+      headers: {
+        Authorization: `${hostAuthData.token_type} ${hostAuthData.access_token}`,
+      },
+      data: {
+        tracks: [{ uri: song }],
+      },
+    }
+
+    axios(options).then(
+      (
+        response // Also remove from frontend once you have that sorted out
+      ) => console.log('response', response)
+    )
+  }
+
+  console.log('playListItems', selectedPlaylistSongs)
 
   return (
     <>
@@ -137,8 +248,45 @@ const Host = () => {
       <button onClick={getSong}>Get Song Data</button>
       <button onClick={getMe}>Get Me</button>
       <button onClick={getPlaylists}>Get My Playlists</button>
+      <button onClick={getPlaylistItems}>Get Playlist Songs</button>
+      <button onClick={createPlaylist}>Create new playlist</button>
       <br />
       <br />
+      <form onSubmit={searchSongs}>
+        <input onChange={handleSearchInput} />
+        <button type='submit'>Search</button>
+      </form>
+      <br />
+      <br />
+      {selectedPlaylist ? JSON.stringify(selectedPlaylist) : null}
+      <br />
+      <br />
+      <ul>
+        {selectedPlaylistSongs
+          ? selectedPlaylistSongs.map((song) => {
+              return (
+                <li key={song.track.id}>
+                  <p>{song.track.name}</p>
+                  <button onClick={() => deleteSong(song.track.uri)}>
+                    Remove
+                  </button>
+                </li>
+              )
+            })
+          : null}
+      </ul>
+      <br />
+      <br />
+      {searchedSongs
+        ? searchedSongs.map((song) => {
+            return (
+              <>
+                <p key={song.id}>{song.name}</p>
+                <button onClick={() => addSong(song)}>Add to playlist</button>
+              </>
+            )
+          })
+        : null}
       <br />
       <br />
       {me ? JSON.stringify(me) : null}
@@ -147,7 +295,20 @@ const Host = () => {
       {songData ? JSON.stringify(songData) : null}
       <br />
       <br />
-      {hostPlaylists ? JSON.stringify(hostPlaylists) : null}
+      <ul>
+        {hostPlaylists
+          ? hostPlaylists.map((playlist) => {
+              return (
+                <li key={playlist.id}>
+                  <p>{playlist.description}</p>
+                  <button onClick={() => selectPlaylist(playlist)}>
+                    Select
+                  </button>
+                </li>
+              )
+            })
+          : null}
+      </ul>
     </>
   )
 }
