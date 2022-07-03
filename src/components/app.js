@@ -1,5 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css'
-import Home from 'components/home'
+import Home from 'components/Home'
 import { AuthProvider, useAuth } from 'components/user/auth'
 import Login from 'components/user/login'
 import Logout from 'components/user/logout'
@@ -34,48 +34,48 @@ function App() {
 
   const dispatch = useDispatch()
 
-  useEffect(() => {
-    dispatch(getData())
-  }, [])
+  // useEffect(() => {
+  //   dispatch(getData())
+  // }, [])
 
-  const storeUserData = (user) => {
-    const providerData = user.providerData[0]
+  // const storeUserData = (user) => {
+  //   const providerData = user.providerData[0]
 
-    const userData = { ...providerData, uid: user.uid }
+  //   const userData = { ...providerData, uid: user.uid }
 
-    dispatch(getDataSuccess(userData))
-  }
+  //   dispatch(getDataSuccess(userData))
+  // }
 
   const appElement = (
     <ErrorBoundary>
-      <AuthProvider onLogin={storeUserData}>
-        <Router history={history}>
-          <Routes>
-            <Route
-              path='/login'
-              render={(routeProps) => (
-                <Login {...routeProps} {...props} firebase={firebase} />
-              )}
-            />
-            <Route
-              path='/logout'
-              render={(routeProps) => (
-                <Logout {...routeProps} {...props} firebase={firebase} />
-              )}
-            />
-            <Route
-              path='/host'
-              element={<Host {...props} firebase={firebase} />}
-            />
-            <Route path='/' element={<Home {...props} firebase={firebase} />} />
-            {/* this must be on the bottom */}
-            {/* <Route
+      {/* <AuthProvider onLogin={storeUserData}> */}
+      <Router history={history}>
+        <Routes>
+          <Route
+            path='/login'
+            render={(routeProps) => (
+              <Login {...routeProps} {...props} firebase={firebase} />
+            )}
+          />
+          <Route
+            path='/logout'
+            render={(routeProps) => (
+              <Logout {...routeProps} {...props} firebase={firebase} />
+            )}
+          />
+          <Route
+            path='/host'
+            element={<Host {...props} firebase={firebase} />}
+          />
+          <Route path='/' element={<Home {...props} firebase={firebase} />} />
+          {/* this must be on the bottom */}
+          {/* <Route
               path='/'
               element={<ProtectedRoute path='/' component={Home} {...props} />}
             /> */}
-          </Routes>
-        </Router>
-      </AuthProvider>
+        </Routes>
+      </Router>
+      {/* </AuthProvider> */}
     </ErrorBoundary>
   )
 
