@@ -99,15 +99,11 @@ const Home = () => {
     return axios(options)
   }
 
-  // NEXT TASK: Save user data to redux and DB
   const authenticate = async () => {
     const tokenData = await getToken()
     localStorage.removeItem('spotifyAuth')
 
     // Need to add logic to refresh token later
-    // sethostTokenData(tokenData.data)
-    // setToken(tokenData.data.access_token)
-
     const { token_type, access_token, refresh_token } = tokenData.data
 
     const userData = await getMe(token_type, access_token)
@@ -120,8 +116,7 @@ const Home = () => {
       followers,
       ...images
     } = userData.data
-    // setUserDetails(userData.data)
-    // setUserId(userData.data.id)
+
     const newUserObj = {
       id,
       name: display_name,
@@ -136,7 +131,7 @@ const Home = () => {
     }
 
     dispatch(createUser(newUserObj))
-    // navigate('/host')
+    navigate('/host')
   }
 
   if (localStorage.getItem('spotifyAuth') && code) {

@@ -54,11 +54,13 @@ export const fetchAllUsers = createAsyncThunk(
   }
 )
 
+// TODO: Data gets overwritten every time user logs in. Arrange this at some point so only the token values are changed
 export const createUser = createAsyncThunk(
   'user/createUser',
   async (payload, thunkAPI) => {
     try {
-      await _createUser(payload)
+      const response = await _createUser(payload)
+      thunkAPI.dispatch(getDataSuccess(payload))
     } catch (error) {
       console.error('error', error)
       // Set any erros while trying to fetch
@@ -66,42 +68,6 @@ export const createUser = createAsyncThunk(
     }
   }
 )
-
-// Some day users will be able to change their profile pics or upload other photos
-export const savePhoto = createAsyncThunk('user/savePhoto', async (payload) => {
-  const file = payload.file
-
-  try {
-    const fileName = _appendToFilename(file.name, '_' + Date.now())
-    const uploadTask = _updloadFile(fileName, file)
-
-    const uploadPromise = new Promise((resolve, reject) => {
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-          console.log('progress:', progress)
-        },
-        (error) => {
-          reject(error)
-        },
-        () => {
-          uploadTask.snapshot.ref
-            .getDownloadURL()
-            .then((downloadURL) => resolve(downloadURL))
-            .catch(reject)
-        }
-      )
-    })
-
-    const downloadURL = await uploadPromise
-
-    return downloadURL
-  } catch (error) {
-    alert('Error saving photo: ' + JSON.stringify(error))
-  }
-})
 
 async function _fetchAllUsersFromDb() {
   const snapshot = await firebaseClient.firestore().collection('users').get()
@@ -115,7 +81,8 @@ async function _createUser(newUserObj) {
   const doc = await firebaseClient
     .firestore()
     .collection('user')
-    .add(newUserObj)
+    .doc(newUserObj.id)
+    .set(newUserObj)
 
   return doc
 }
@@ -130,8 +97,14 @@ function _appendToFilename(filename, string) {
     )
 }
 
-function _updloadFile(fileName, file) {
-  const uploadTask = firebaseClient.storage().ref(`/${fileName}`).put(file)
+async function _fetchUserFromDb(uid) {
+  const snapshot = await firebaseClient
+    .firestore()
+    .collection('users')
+    .where('uid', '==', uid)
+    .get()
 
-  return uploadTask
+  const data = snapshot.docs[0] ? { ...snapshot.docs[0].data() } : null
+
+  return data
 }
