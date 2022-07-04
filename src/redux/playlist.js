@@ -76,25 +76,6 @@ export const {
   deleteSongSuccess,
 } = playlist.actions
 
-export const fetchPlaylist = createAsyncThunk(
-  'playlist/fetchPlaylist',
-  async (payload, thunkAPI) => {
-    thunkAPI.dispatch(appendData())
-
-    try {
-      const data = await _fetchPlaylistFromDb(payload.id)
-
-      if (!data) {
-        thunkAPI.dispatch(createPlaylist(payload))
-      } else {
-        thunkAPI.dispatch(appendDataSuccess({ ...payload, ...data }))
-      }
-    } catch (error) {
-      thunkAPI.dispatch(appendDataFailure(error))
-    }
-  }
-)
-
 export const createPlaylist = createAsyncThunk(
   'playlist/createPlaylist',
   async (payload, thunkAPI) => {

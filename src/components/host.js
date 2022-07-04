@@ -1,8 +1,5 @@
 import axios from 'axios'
-import { useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import Base64 from 'crypto-js/enc-base64'
-import Utf8 from 'crypto-js/enc-utf8'
+import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import EditPlaylist from './EditPlaylist'
 import { createPlaylist } from 'redux/playlist'
@@ -75,7 +72,6 @@ const Host = () => {
       songs: [],
       spotifyURI: uri,
     }
-    console.log('playlistObj', playlistObj)
     dispatch(createPlaylist(playlistObj))
   }
 

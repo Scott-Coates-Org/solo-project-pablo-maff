@@ -33,12 +33,8 @@ const PlaylistForm = ({ createPlaylistSpotify, createPlaylistInDb }) => {
         description: data.description,
       })
 
-      console.log('TADA!')
       createPlaylistInDb(response.data)
-      console.log('!BROKEN')
       reset()
-      // TODO HERE
-      // dispatch(fetchAllRooms())
     }
   }
 

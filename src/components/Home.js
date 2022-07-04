@@ -1,18 +1,11 @@
 import axios from 'axios'
 import Base64 from 'crypto-js/enc-base64'
 import Utf8 from 'crypto-js/enc-utf8'
-import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { createUser } from 'redux/user'
 
 const Home = () => {
-  const [hostTokenData, sethostTokenData] = useState({})
-  const [token, setToken] = useState('')
-  const [userDetails, setUserDetails] = useState({})
-  const [refresh, setRefresh] = useState(false)
-  const [userId, setUserId] = useState('')
-
   const dispatch = useDispatch()
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -76,34 +69,34 @@ const Home = () => {
     return axios(options)
   }
 
-  // Worry about this later
-  const refreshToken = () => {
-    const formBody = new URLSearchParams()
-    formBody.set('grant_type', 'refresh_token')
-    formBody.set('refresh_token', hostTokenData.refresh_token)
+  // TODO Worry about this later
+  // const refreshToken = () => {
+  //   const formBody = new URLSearchParams()
+  //   formBody.set('grant_type', 'refresh_token')
+  //   formBody.set('refresh_token', hostTokenData.refresh_token)
 
-    const options = {
-      method: 'POST',
-      url: 'https://accounts.spotify.com/api/token',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        // https://github.com/brix/crypto-js/issues/189
-        // https://stackoverflow.com/questions/48524452/base64-encoder-via-crypto-js
-        Authorization:
-          'Basic ' +
-          Base64.stringify(Utf8.parse(clientId + ':' + clientSecret)),
-      },
-      data: formBody,
-    }
+  //   const options = {
+  //     method: 'POST',
+  //     url: 'https://accounts.spotify.com/api/token',
+  //     headers: {
+  //       'Content-Type': 'application/x-www-form-urlencoded',
+  //       // https://github.com/brix/crypto-js/issues/189
+  //       // https://stackoverflow.com/questions/48524452/base64-encoder-via-crypto-js
+  //       Authorization:
+  //         'Basic ' +
+  //         Base64.stringify(Utf8.parse(clientId + ':' + clientSecret)),
+  //     },
+  //     data: formBody,
+  //   }
 
-    return axios(options)
-  }
+  //   return axios(options)
+  // }
 
   const authenticate = async () => {
     const tokenData = await getToken()
     localStorage.removeItem('spotifyAuth')
 
-    // Need to add logic to refresh token later
+    // TODO: Need to add logic to refresh token later
     const { token_type, access_token, refresh_token } = tokenData.data
 
     const userData = await getMe(token_type, access_token)
@@ -141,7 +134,6 @@ const Home = () => {
   return (
     <>
       <button onClick={getAuthCode}>Start Party</button>
-      <button onClick={() => setRefresh(!refresh)}>refresh</button>
     </>
   )
 }
