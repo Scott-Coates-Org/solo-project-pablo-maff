@@ -22,7 +22,6 @@ const EditPlaylist = () => {
   }
 
   // Make it possible to delete many songs at the same time by passing an array with the uris to data
-  // TODO: delete song from db method
   const deleteSongSpotify = (song) => {
     const options = {
       method: 'DELETE',
@@ -43,7 +42,7 @@ const EditPlaylist = () => {
   }
 
   // Add possibility of adding multiple songs at the same time. Add the songs to an array state and pass it to uris
-  const addSongSpotify = (song) => {
+  const addSongSpotify = (songURI) => {
     const options = {
       method: 'POST',
       url: `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
@@ -51,7 +50,7 @@ const EditPlaylist = () => {
         Authorization: `${user.tokenType} ${user.accessToken}`,
       },
       data: {
-        uris: [song.uri],
+        uris: [songURI],
       },
     }
 
@@ -69,11 +68,10 @@ const EditPlaylist = () => {
     }
 
     dispatch(addSongToPlaylist({ playlistId: playlist.id, songObj }))
-    addSongSpotify(songObj)
+    addSongSpotify(songObj.uri)
   }
 
   const deleteSong = (song) => {
-    console.log('song', song)
     dispatch(
       deleteSongFromPlaylist({ playlistId: playlist.id, songToDelete: song })
     )

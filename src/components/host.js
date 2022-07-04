@@ -6,6 +6,7 @@ import Utf8 from 'crypto-js/enc-utf8'
 import { useDispatch, useSelector } from 'react-redux'
 import EditPlaylist from './EditPlaylist'
 import { createPlaylist } from 'redux/playlist'
+import PlaylistForm from './PlaylistForm'
 
 const Host = () => {
   const [songData, setSongData] = useState()
@@ -16,8 +17,6 @@ const Host = () => {
 
   const user = useSelector((state) => state.user.data)
   const playlist = useSelector(({ playlist }) => playlist.data)
-
-  console.log('hostPlaylist', playlist)
 
   const getPlaylists = async () => {
     const options = {
@@ -40,26 +39,6 @@ const Host = () => {
       )
     )
   }
-
-  // const createPlaylist = () => {
-  //   const options = {
-  //     method: 'POST',
-  //     url: `https://api.spotify.com/v1/users/${user.id}/playlists`,
-  //     headers: {
-  //       // https://github.com/brix/crypto-js/issues/189
-  //       // https://stackoverflow.com/questions/48524452/base64-encoder-via-crypto-js
-  //       Authorization: `${user.tokenType} ${user.accessToken}`,
-  //     },
-  //     data: {
-  //       name: 'new playlist',
-  //       public: false, // to create a collaborative playlist public needs to be set to false
-  //       collaborative: true,
-  //       description: 'This is my new awesome playlist',
-  //     },
-  //   }
-
-  //   axios(options).then((response) => setSelectedPlaylist(response.data))
-  // }
 
   const getPlaylistItems = async (playlistId) => {
     const options = {
@@ -89,6 +68,37 @@ const Host = () => {
       }
       dispatch(createPlaylist(playlistObj))
     }
+    console.log('data', data)
+    const { id, owner, uri, description } = data
+
+    const playlistObj = {
+      id,
+      name: description,
+      uid: owner.id,
+      songs: [],
+      spotifyURI: uri,
+    }
+    console.log('playlistObj', playlistObj)
+    dispatch(createPlaylist(playlistObj))
+  }
+
+  const createPlaylistSpotify = (name, description) => {
+    const options = {
+      method: 'POST',
+      url: `https://api.spotify.com/v1/users/${user.id}/playlists`,
+      headers: {
+        // https://github.com/brix/crypto-js/issues/189
+        // https://stackoverflow.com/questions/48524452/base64-encoder-via-crypto-js
+        Authorization: `${user.tokenType} ${user.accessToken}`,
+      },
+      data: {
+        name,
+        public: false, // to create a collaborative playlist public needs to be set to false
+        collaborative: true,
+        description,
+      },
+    }
+    return axios(options)
   }
 
   const selectPlaylist = async (playlist, fromAPI = false) => {
@@ -114,15 +124,18 @@ const Host = () => {
       const playlistWithSongs = { ...playlist, songs: parsedSongs }
       createPlaylistInDb(playlistWithSongs, true)
     }
+    const response = await createPlaylistSpotify('testPlaylist', 'dummy')
+    createPlaylistInDb(response.data)
     // getPlaylistItems()
-    setHostPlaylists(false)
+    // setHostPlaylists(false)
   }
 
   return (
     <>
       <h3>Play your stuff or create a new playlist</h3>
       <button onClick={getPlaylists}>Get My Playlists</button>
-      <button onClick={createPlaylist}>Create new playlist</button>
+      <button onClick={selectPlaylist}>Create Playlist</button>
+      {/* <PlaylistForm /> */}
       <br />
       {playlist?.id ? <EditPlaylist playlist={playlist} /> : null}
       <br />
