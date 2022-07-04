@@ -9,9 +9,7 @@ import { createPlaylist } from 'redux/playlist'
 import PlaylistForm from './PlaylistForm'
 
 const Host = () => {
-  const [songData, setSongData] = useState()
   const [hostPlaylists, setHostPlaylists] = useState()
-  const [addedSongs, setAddedSongs] = useState([])
 
   const dispatch = useDispatch()
 
@@ -68,7 +66,6 @@ const Host = () => {
       }
       dispatch(createPlaylist(playlistObj))
     }
-    console.log('data', data)
     const { id, owner, uri, description } = data
 
     const playlistObj = {
@@ -82,7 +79,7 @@ const Host = () => {
     dispatch(createPlaylist(playlistObj))
   }
 
-  const createPlaylistSpotify = (name, description) => {
+  const createPlaylistSpotify = ({ name, description }) => {
     const options = {
       method: 'POST',
       url: `https://api.spotify.com/v1/users/${user.id}/playlists`,
@@ -124,23 +121,18 @@ const Host = () => {
       const playlistWithSongs = { ...playlist, songs: parsedSongs }
       createPlaylistInDb(playlistWithSongs, true)
     }
-    const response = await createPlaylistSpotify('testPlaylist', 'dummy')
-    createPlaylistInDb(response.data)
-    // getPlaylistItems()
-    // setHostPlaylists(false)
   }
 
   return (
     <>
       <h3>Play your stuff or create a new playlist</h3>
       <button onClick={getPlaylists}>Get My Playlists</button>
-      <button onClick={selectPlaylist}>Create Playlist</button>
-      {/* <PlaylistForm /> */}
+      <PlaylistForm
+        createPlaylistInDb={createPlaylistInDb}
+        createPlaylistSpotify={createPlaylistSpotify}
+      />
       <br />
       {playlist?.id ? <EditPlaylist playlist={playlist} /> : null}
-      <br />
-      <br />
-      {songData ? JSON.stringify(songData) : null}
       <br />
       <br />
       <ul>

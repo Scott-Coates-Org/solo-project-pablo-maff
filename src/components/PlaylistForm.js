@@ -1,9 +1,8 @@
 import { useForm } from 'react-hook-form'
 import { Button, Form, FormGroup, Input, Label } from 'reactstrap'
 import { useDispatch } from 'react-redux'
-import { createPlaylist } from 'redux/playlist'
 
-const PlaylistForm = () => {
+const PlaylistForm = ({ createPlaylistSpotify, createPlaylistInDb }) => {
   const dispatch = useDispatch()
 
   const {
@@ -25,16 +24,18 @@ const PlaylistForm = () => {
   })
 
   const onSubmit = async (data) => {
+    console.log('data', data)
     if (Object.keys(errors).length) {
       alert('Error creating playlist: ' + JSON.stringify(errors))
     } else {
-      await dispatch(
-        createPlaylistSpotify({
-          name: data.name,
-          description: data.description,
-        })
-      )
-      createPlaylistInDb()
+      const response = await createPlaylistSpotify({
+        name: data.name,
+        description: data.description,
+      })
+
+      console.log('TADA!')
+      createPlaylistInDb(response.data)
+      console.log('!BROKEN')
       reset()
       // TODO HERE
       // dispatch(fetchAllRooms())
