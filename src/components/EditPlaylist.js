@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { addSongToPlaylist } from 'redux/playlist'
+import { addSongToPlaylist, deleteSongFromPlaylist } from 'redux/playlist'
 
 const EditPlaylist = () => {
   const [searchInput, setSearchInput] = useState('')
@@ -23,7 +23,7 @@ const EditPlaylist = () => {
 
   // Make it possible to delete many songs at the same time by passing an array with the uris to data
   // TODO: delete song from db method
-  const deleteSong = (song) => {
+  const deleteSongSpotify = (song) => {
     const options = {
       method: 'DELETE',
       url: `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
@@ -72,6 +72,14 @@ const EditPlaylist = () => {
     addSongSpotify(songObj)
   }
 
+  const deleteSong = (song) => {
+    console.log('song', song)
+    dispatch(
+      deleteSongFromPlaylist({ playlistId: playlist.id, songToDelete: song })
+    )
+    deleteSongSpotify(song.uri)
+  }
+
   const searchSongs = async (searchInput) => {
     const options = {
       method: 'GET',
@@ -111,7 +119,7 @@ const EditPlaylist = () => {
         return (
           <li key={song.id}>
             <p>{song.name}</p>
-            <button onClick={() => deleteSong(song.uri)}>Remove</button>
+            <button onClick={() => deleteSong(song)}>Remove</button>
           </li>
         )
       })}

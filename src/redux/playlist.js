@@ -53,6 +53,12 @@ const playlist = createSlice({
         songs: state.data.songs.concat(action.payload),
       }
     },
+    deleteSongSuccess(state, action) {
+      const updatedSongs = state.data.songs.filter(
+        (song) => song.id !== action.payload
+      )
+      state.data = { ...state.data, songs: updatedSongs }
+    },
   },
 })
 
@@ -67,6 +73,7 @@ export const {
   appendDataSuccess,
   appendDataFailure,
   appendSongSuccess,
+  deleteSongSuccess,
 } = playlist.actions
 
 export const fetchPlaylist = createAsyncThunk(
@@ -112,6 +119,18 @@ export const addSongToPlaylist = createAsyncThunk(
   }
 )
 
+export const deleteSongFromPlaylist = createAsyncThunk(
+  'playlist/deleteSong',
+  async (payload, thunkAPI) => {
+    try {
+      await _deleteSongData(payload)
+      thunkAPI.dispatch(deleteSongSuccess(payload.songToDelete.id))
+    } catch (error) {
+      thunkAPI.dispatch(createDataFailure(error))
+    }
+  }
+)
+
 const _addSongToPlaylist = async (playlistId, songObj) => {
   const doc = await firebaseClient
     .firestore()
@@ -130,6 +149,18 @@ async function _createPlaylistData(playlistObj) {
     .collection('playlists')
     .doc(playlistObj.id)
     .set(playlistObj)
+
+  return doc
+}
+
+const _deleteSongData = async (song) => {
+  const doc = await firebaseClient
+    .firestore()
+    .collection('playlists')
+    .doc(song.playlistId)
+    .update({
+      songs: firebase.firestore.FieldValue.arrayRemove(song.songToDelete),
+    })
 
   return doc
 }
