@@ -1,16 +1,29 @@
 import axios from 'axios'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { addSongToPlaylist, deleteSongFromPlaylist } from 'redux/playlist'
+import { addSongToPlaylist, createSong, deleteSong } from 'redux/song'
 
-const EditPlaylist = () => {
+function EditPlaylist() {
   const [searchInput, setSearchInput] = useState('')
   const [searchedSongs, setSearchedSongs] = useState([])
 
-  const playlist = useSelector(({ playlist }) => playlist.data)
   const dispatch = useDispatch()
 
-  const user = useSelector((state) => state.user.data)
+  const { data: userData, isLoaded: userIsLoaded } = useSelector(
+    ({ user }) => user
+  )
+
+  const playlist = useSelector(({ playlist }) => playlist.data)
+
+  // console.log('playlist', playlist)
+
+  const { data: songData, isLoaded: songIsLoaded } = useSelector(
+    ({ song }) => song
+  )
+
+  // console.log('songdata', songData)
+
+  if (!userIsLoaded) return <div>loading...</div>
 
   const handleSearchInput = (e) => {
     setSearchInput(e.target.value)
@@ -27,7 +40,7 @@ const EditPlaylist = () => {
       method: 'DELETE',
       url: `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
       headers: {
-        Authorization: `${user.tokenType} ${user.accessToken}`,
+        Authorization: `${userData.tokenType} ${userData.accessToken}`,
       },
       data: {
         tracks: [{ uri: song }],
@@ -42,22 +55,26 @@ const EditPlaylist = () => {
   }
 
   // Add possibility of adding multiple songs at the same time. Add the songs to an array state and pass it to uris
-  const addSongSpotify = (songURI) => {
+  const addSongSpotify = async (songURI) => {
     const options = {
       method: 'POST',
       url: `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
       headers: {
-        Authorization: `${user.tokenType} ${user.accessToken}`,
+        Authorization: `${userData.tokenType} ${userData.accessToken}`,
       },
       data: {
         uris: [songURI],
       },
     }
 
-    axios(options)
+    const response = await axios(options)
+
+    return response.data
   }
 
-  const addSong = (song) => {
+  // TODO: If a song is already in the list it can't be added again
+  const addSong = async (song) => {
+    console.log('song', song)
     const { id, name, uri, external_urls } = song
 
     const songObj = {
@@ -65,16 +82,16 @@ const EditPlaylist = () => {
       name,
       uri,
       url: external_urls.spotify,
+      votes: 0,
+      playlistId: playlist.id,
     }
 
-    dispatch(addSongToPlaylist({ playlistId: playlist.id, songObj }))
-    addSongSpotify(songObj.uri)
+    await addSongSpotify(songObj.uri)
+    dispatch(addSongToPlaylist(songObj))
   }
 
-  const deleteSong = (song) => {
-    dispatch(
-      deleteSongFromPlaylist({ playlistId: playlist.id, songToDelete: song })
-    )
+  const deleteSongHandler = (song) => {
+    dispatch(deleteSong(song))
     deleteSongSpotify(song.uri)
   }
 
@@ -85,13 +102,13 @@ const EditPlaylist = () => {
       headers: {
         // https://github.com/brix/crypto-js/issues/189
         // https://stackoverflow.com/questions/48524452/base64-encoder-via-crypto-js
-        Authorization: `${user.tokenType} ${user.accessToken}`,
+        Authorization: `${userData.tokenType} ${userData.accessToken}`,
       },
     }
 
     // pagination links on response.data
     const response = await axios(options)
-    setSearchedSongs(searchedSongs.concat(response.data.tracks.items))
+    setSearchedSongs(response.data.tracks.items)
   }
 
   return (
@@ -104,23 +121,24 @@ const EditPlaylist = () => {
       {searchedSongs
         ? searchedSongs.map((song) => {
             return (
-              <>
-                <p key={song.id}>{song.name}</p>
+              <div key={song.id}>
+                <p>{song.name}</p>
                 <button onClick={() => addSong(song)}>Add to playlist</button>
-              </>
+              </div>
             )
           })
         : null}
       <h5>{playlist.description}</h5>
       <p>Songs</p>
-      {playlist.songs.map((song) => {
-        return (
-          <li key={song.id}>
-            <p>{song.name}</p>
-            <button onClick={() => deleteSong(song)}>Remove</button>
-          </li>
-        )
-      })}
+      {songData.length &&
+        songData.map((song) => {
+          return (
+            <li key={song.id}>
+              <p>{song.name}</p>
+              <button onClick={() => deleteSongHandler(song)}>Remove</button>
+            </li>
+          )
+        })}
     </>
   )
 }

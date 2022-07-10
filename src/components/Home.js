@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { createUser } from 'redux/user'
 
-const Home = () => {
+function Home() {
   const dispatch = useDispatch()
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -131,9 +131,14 @@ const Home = () => {
     authenticate()
   }
 
+  const joinGig = () => {
+    navigate('/active-gigs')
+  }
+
   return (
     <>
-      <button onClick={getAuthCode}>Start Party</button>
+      <button onClick={getAuthCode}>Host Gig</button>
+      <button onClick={joinGig}>Join a Gig</button>
     </>
   )
 }

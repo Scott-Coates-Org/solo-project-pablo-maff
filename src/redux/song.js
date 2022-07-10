@@ -9,8 +9,8 @@ const initialState = {
   errorMsg: '',
 }
 
-const playlist = createSlice({
-  name: 'playlist',
+const song = createSlice({
+  name: 'song',
   initialState,
   reducers: {
     getData: (state) => {
@@ -88,7 +88,7 @@ const playlist = createSlice({
   },
 })
 
-export const reducer = playlist.reducer
+export const reducer = song.reducer
 
 export const {
   getData,
@@ -106,14 +106,15 @@ export const {
   updateData,
   updateDataSuccess,
   updateDataFailure,
-} = playlist.actions
+} = song.actions
 
-export const fetchAllActivePlaylists = createAsyncThunk(
-  'playlist/fetchAllActivePlaylists',
-  async (_, thunkAPI) => {
+export const fetchSelectedPlaylistSongs = createAsyncThunk(
+  'playlist/fetchSelectedPlaylistSongs',
+  async (playlistId, thunkAPI) => {
+    console.log('playlistId', playlistId)
     thunkAPI.dispatch(getData())
     try {
-      const data = await _fetchAllActivePlaylistsFromDb()
+      const data = await _fetchSelectedPlaylistSongsFromDb(playlistId)
       thunkAPI.dispatch(getDataSuccess(data))
     } catch (error) {
       thunkAPI.dispatch(getDataFailure(error))
@@ -121,12 +122,38 @@ export const fetchAllActivePlaylists = createAsyncThunk(
   }
 )
 
-export const createPlaylist = createAsyncThunk(
-  'playlist/createPlaylist',
+const _fetchSelectedPlaylistSongsFromDb = async (playlistId) => {
+  const snapshot = await firebaseClient
+    .firestore()
+    .collection(`playlists/${playlistId}/songs`)
+    .get()
+
+  const data = snapshot.docs.map((doc) => doc.data())
+
+  console.log('data', data)
+
+  return data
+}
+
+export const createSong = createAsyncThunk(
+  'song/createSong',
   async (payload, thunkAPI) => {
-    thunkAPI.dispatch(createData())
     try {
-      await _createPlaylistData(payload)
+      thunkAPI.dispatch(createData())
+      await _createSongData(payload)
+      thunkAPI.dispatch(createDataSuccess(payload.songObj))
+    } catch (error) {
+      thunkAPI.dispatch(createDataFailure(error))
+    }
+  }
+)
+
+export const createBatchSongs = createAsyncThunk(
+  'song/createBatchSongs',
+  async (payload, thunkAPI) => {
+    try {
+      thunkAPI.dispatch(createData())
+      await _createBatchSongs(payload)
       thunkAPI.dispatch(createDataSuccess(payload))
     } catch (error) {
       thunkAPI.dispatch(createDataFailure(error))
@@ -134,108 +161,100 @@ export const createPlaylist = createAsyncThunk(
   }
 )
 
-export const addGuestToPlaylist = createAsyncThunk(
-  'playlist/appendGuest',
+export const addSongToPlaylist = createAsyncThunk(
+  'song/appendSong',
   async (payload, thunkAPI) => {
     try {
-      thunkAPI.dispatch(updateData())
-
-      const updatedPlaylist = {
-        ...payload.playlistObj,
-        guests: [...payload.playlistObj.guests, payload.guest],
-      }
-      const playlistState = thunkAPI.getState().playlist.data
-
-      const updatedPlaylists = playlistState.map((playlist) =>
-        playlist.id !== updatedPlaylist.id ? playlist : updatedPlaylist
-      )
-
-      await _addGuestToPlaylist({
-        playlistId: payload.playlistObj.id,
-        name: payload.guest,
-      })
-
-      thunkAPI.dispatch(updateDataSuccess(updatedPlaylists))
+      thunkAPI.dispatch(appendData())
+      await _createSongData(payload)
+      thunkAPI.dispatch(appendDataSuccess(payload))
     } catch (error) {
-      thunkAPI.dispatch(updateDataSuccess(error))
+      thunkAPI.dispatch(appendDataFailure(error))
     }
   }
 )
 
-export const removeGuestFromPlaylist = createAsyncThunk(
-  'playlist/removeGuest',
+export const deleteSong = createAsyncThunk(
+  'song/deleteSong',
   async (payload, thunkAPI) => {
     try {
       thunkAPI.dispatch(deleteData())
-      await _deleteGuestData(payload)
-      thunkAPI.dispatch(deleteDataSuccess(payload.id))
+      await _deleteSongData(payload)
+      const songsState = thunkAPI.getState().song.data
+      const remainingSongs = songsState.filter((song) => song.id !== payload.id)
+      thunkAPI.dispatch(deleteDataSuccess(remainingSongs))
     } catch (error) {
       thunkAPI.dispatch(deleteDataFailure(error))
     }
   }
 )
 
-export const updatePlaylistActiveState = createAsyncThunk(
-  'playlist/activeState',
+export const voteSong = createAsyncThunk(
+  'song/voteSong',
   async (payload, thunkAPI) => {
     try {
       thunkAPI.dispatch(updateData())
-      await _updatePlaylistActiveState(payload)
-      thunkAPI.dispatch(updateDataSuccess(payload))
+      await _voteSong(payload)
+      const votedSong = { ...payload, votes: payload.votes + 1 }
+      const songsState = thunkAPI.getState().song.data
+      const updatedSongs = songsState.map((song) =>
+        song.id !== votedSong.id ? song : votedSong
+      )
+      thunkAPI.dispatch(updateDataSuccess(updatedSongs))
     } catch (error) {
       thunkAPI.dispatch(updateDataFailure(error))
     }
   }
 )
 
-const _fetchAllActivePlaylistsFromDb = async () => {
-  const snapshot = await firebaseClient
-    .firestore()
-    .collection('playlists')
-    .where('activeGig', '==', true)
-    .get()
-
-  const data = snapshot.docs.map((doc) => doc.data())
-
-  return data
-}
-
-const _updatePlaylistActiveState = async (playlist) => {
-  await firebaseClient
-    .firestore()
-    .collection('playlists')
-    .doc(playlist.id)
-    .update({
-      activeGig: playlist.activeGig,
-    })
-}
-
-const _addGuestToPlaylist = async (guestObj) => {
+const _voteSong = async (songObj) => {
   const doc = await firebaseClient
     .firestore()
     .collection('playlists')
-    .doc(guestObj.playlistId)
+    .doc(songObj.playlistId)
+    .collection('songs')
+    .doc(songObj.id)
     .update({
-      guests: firebase.firestore.FieldValue.arrayUnion(guestObj.name),
+      votes: firebase.firestore.FieldValue.increment(1),
     })
-}
-
-const _createPlaylistData = async (playlistObj) => {
-  const doc = await firebaseClient
-    .firestore()
-    .collection('playlists')
-    .doc(playlistObj.id)
-    .set(playlistObj)
 
   return doc
 }
 
-const _deleteGuestData = async (guestObj) => {
+async function _createSongData(songObj) {
   const doc = await firebaseClient
     .firestore()
     .collection('playlists')
-    .doc(guestObj.playlistId)
+    .doc(songObj.playlistId)
+    .collection('songs')
+    .doc(songObj.id)
+    .set(songObj)
+
+  return doc
+}
+
+const _createBatchSongs = async (songsArray) => {
+  for (const song of songsArray) {
+    await firebaseClient
+      .firestore()
+      .collection('playlists')
+      .doc(song.playlistId)
+      .collection('songs')
+      .doc(song.id)
+      .set(song)
+  }
+}
+
+const _deleteSongData = async (song) => {
+  const doc = await firebaseClient
+    .firestore()
+    .collection('playlists')
+    .doc(song.playlistId)
+    .collection('songs')
+    .doc(song.id)
     .update({
-      guests: firebase.firestore.FieldValue.arrayRemove(guestObj),
+      songs: firebase.firestore.FieldValue.arrayRemove(song),
     })
+
+  return doc
 }

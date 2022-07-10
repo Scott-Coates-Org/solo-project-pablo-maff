@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form'
 import { Button, Form, FormGroup, Input, Label } from 'reactstrap'
 import { useDispatch } from 'react-redux'
 
-const PlaylistForm = ({ createPlaylistSpotify, createPlaylistInDb }) => {
+function PlaylistForm({ createPlaylistSpotify, createPlaylistInDb }) {
   const dispatch = useDispatch()
 
   const {
@@ -24,7 +24,6 @@ const PlaylistForm = ({ createPlaylistSpotify, createPlaylistInDb }) => {
   })
 
   const onSubmit = async (data) => {
-    console.log('data', data)
     if (Object.keys(errors).length) {
       alert('Error creating playlist: ' + JSON.stringify(errors))
     } else {

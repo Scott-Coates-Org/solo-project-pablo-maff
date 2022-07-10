@@ -2,16 +2,23 @@ import axios from 'axios'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import EditPlaylist from './EditPlaylist'
-import { createPlaylist } from 'redux/playlist'
+import { createPlaylist, updatePlaylistActiveState } from 'redux/playlist'
 import PlaylistForm from './PlaylistForm'
+import { useNavigate } from 'react-router-dom'
+import { createBatchSongs } from 'redux/song'
 
-const Host = () => {
+function Host() {
   const [hostPlaylists, setHostPlaylists] = useState()
 
   const dispatch = useDispatch()
+  const navigate = useNavigate()
 
-  const user = useSelector((state) => state.user.data)
+  const { data: userData, isLoaded: userIsLoaded } = useSelector(
+    ({ user }) => user
+  )
   const playlist = useSelector(({ playlist }) => playlist.data)
+
+  if (!userIsLoaded) return <div>loading...</div>
 
   const getPlaylists = async () => {
     const options = {
@@ -20,7 +27,7 @@ const Host = () => {
       headers: {
         // https://github.com/brix/crypto-js/issues/189
         // https://stackoverflow.com/questions/48524452/base64-encoder-via-crypto-js
-        Authorization: `${user.tokenType} ${user.accessToken}`,
+        Authorization: `${userData.tokenType} ${userData.accessToken}`,
       },
     }
 
@@ -29,7 +36,7 @@ const Host = () => {
       // The user must own the playlist or the playlist must be collaborative
       response.data.items.filter(
         (playlist) =>
-          playlist.owner.display_name === user.name &&
+          playlist.owner.display_name === userData.name &&
           playlist.collaborative === true
       )
     )
@@ -40,7 +47,7 @@ const Host = () => {
       method: 'GET',
       url: `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
       headers: {
-        Authorization: `${user.tokenType} ${user.accessToken}`,
+        Authorization: `${userData.tokenType} ${userData.accessToken}`,
       },
     }
 
@@ -50,6 +57,7 @@ const Host = () => {
     return response.data
   }
 
+  // TODO: DRY
   const createPlaylistInDb = (data, fromAPI = false) => {
     if (fromAPI) {
       const { id, owner, songs, uri, description } = data
@@ -58,31 +66,37 @@ const Host = () => {
         id,
         name: description,
         uid: owner.id,
-        songs,
         spotifyURI: uri,
+        guests: [],
+        activeGig: false,
+        host: userData.name,
+      }
+      dispatch(createPlaylist(playlistObj))
+      dispatch(createBatchSongs(songs))
+    } else {
+      const { id, owner, uri, description } = data
+      const playlistObj = {
+        id,
+        name: description,
+        uid: owner.id,
+        songs: [],
+        spotifyURI: uri,
+        guests: [],
+        activeGig: false,
+        host: userData.name,
       }
       dispatch(createPlaylist(playlistObj))
     }
-    const { id, owner, uri, description } = data
-
-    const playlistObj = {
-      id,
-      name: description,
-      uid: owner.id,
-      songs: [],
-      spotifyURI: uri,
-    }
-    dispatch(createPlaylist(playlistObj))
   }
 
   const createPlaylistSpotify = ({ name, description }) => {
     const options = {
       method: 'POST',
-      url: `https://api.spotify.com/v1/users/${user.id}/playlists`,
+      url: `https://api.spotify.com/v1/users/${userData.id}/playlists`,
       headers: {
         // https://github.com/brix/crypto-js/issues/189
         // https://stackoverflow.com/questions/48524452/base64-encoder-via-crypto-js
-        Authorization: `${user.tokenType} ${user.accessToken}`,
+        Authorization: `${userData.tokenType} ${userData.accessToken}`,
       },
       data: {
         name,
@@ -94,29 +108,34 @@ const Host = () => {
     return axios(options)
   }
 
-  const selectPlaylist = async (playlist, fromAPI = false) => {
-    if (fromAPI) {
-      const songs = await getPlaylistItems(playlist.id)
-      const parsedSongs = songs.items.map((song) => {
-        return {
-          id: song.track.id,
-          // artists: [
-          //   {
-          //     // Need to map this as well?
-          //     id: song.track.artists.id,
-          //     name: song.track.artists.name,
-          //     uri: song.track.artists.uri,
-          //     // url: song.track.artists.external_urls.spotify,
-          //   },
-          // ],
-          name: song.track.name,
-          uri: song.track.uri,
-          url: song.track.external_urls.spotify,
-        }
-      })
-      const playlistWithSongs = { ...playlist, songs: parsedSongs }
-      createPlaylistInDb(playlistWithSongs, true)
-    }
+  const selectPlaylist = async (playlist) => {
+    const songs = await getPlaylistItems(playlist.id)
+    const parsedSongs = songs.items.map((song) => {
+      return {
+        id: song.track.id,
+        // artists: [
+        //   {
+        //     // Need to map this as well?
+        //     id: song.track.artists.id,
+        //     name: song.track.artists.name,
+        //     uri: song.track.artists.uri,
+        //     // url: song.track.artists.external_urls.spotify,
+        //   },
+        // ],
+        name: song.track.name,
+        uri: song.track.uri,
+        url: song.track.external_urls.spotify,
+        votes: 0,
+        playlistId: playlist.id,
+      }
+    })
+    const playlistWithSongs = { ...playlist, songs: parsedSongs }
+    createPlaylistInDb(playlistWithSongs, true)
+  }
+
+  const startGig = () => {
+    dispatch(updatePlaylistActiveState({ ...playlist, activeGig: true }))
+    navigate(`/gig/${playlist.id}`)
   }
 
   return (
@@ -128,7 +147,12 @@ const Host = () => {
         createPlaylistSpotify={createPlaylistSpotify}
       />
       <br />
-      {playlist?.id ? <EditPlaylist playlist={playlist} /> : null}
+      {playlist?.id ? (
+        <>
+          <button onClick={startGig}>Start Gig</button>
+          <EditPlaylist />
+        </>
+      ) : null}
       <br />
       <br />
       <ul>
@@ -137,7 +161,7 @@ const Host = () => {
               return (
                 <li key={playlist.id}>
                   <p>{playlist.description}</p>
-                  <button onClick={() => selectPlaylist(playlist, true)}>
+                  <button onClick={() => selectPlaylist(playlist)}>
                     Select
                   </button>
                 </li>
