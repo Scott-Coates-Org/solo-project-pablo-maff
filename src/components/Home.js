@@ -12,6 +12,7 @@ function Home() {
   const navigate = useNavigate()
 
   const redirectURI = 'http://localhost:3000'
+  // const redirectURI = 'https://jukecratic.web.app/'
   const clientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID
   const clientSecret = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET
   const state = process.env.REACT_APP_SPOTIFY_STATE

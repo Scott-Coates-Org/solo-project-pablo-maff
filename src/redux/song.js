@@ -111,29 +111,23 @@ export const {
 export const fetchSelectedPlaylistSongs = createAsyncThunk(
   'playlist/fetchSelectedPlaylistSongs',
   async (playlistId, thunkAPI) => {
-    console.log('playlistId', playlistId)
     thunkAPI.dispatch(getData())
     try {
-      const data = await _fetchSelectedPlaylistSongsFromDb(playlistId)
-      thunkAPI.dispatch(getDataSuccess(data))
+      await firebaseClient
+        .firestore()
+        .collection(`playlists/${playlistId}/songs`)
+        .onSnapshot((querySnapshot) => {
+          let songs = []
+          querySnapshot.forEach((doc) => {
+            songs.push(doc.data())
+          })
+          thunkAPI.dispatch(getDataSuccess(songs))
+        })
     } catch (error) {
       thunkAPI.dispatch(getDataFailure(error))
     }
   }
 )
-
-const _fetchSelectedPlaylistSongsFromDb = async (playlistId) => {
-  const snapshot = await firebaseClient
-    .firestore()
-    .collection(`playlists/${playlistId}/songs`)
-    .get()
-
-  const data = snapshot.docs.map((doc) => doc.data())
-
-  console.log('data', data)
-
-  return data
-}
 
 export const createSong = createAsyncThunk(
   'song/createSong',
