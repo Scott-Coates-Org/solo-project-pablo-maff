@@ -21,7 +21,7 @@ const song = createSlice({
 
     getDataSuccess: (state, action) => {
       state.isLoaded = true
-      state.data = action.payload
+      state.data = action.payload.sort((a, b) => b.votes - a.votes)
     },
 
     getDataFailure: (state, action) => {

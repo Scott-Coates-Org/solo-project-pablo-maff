@@ -20,7 +20,7 @@ function Home() {
 
   const getAuthCode = () => {
     const scope =
-      'user-read-recently-played user-read-playback-state playlist-read-collaborative user-read-email user-top-read playlist-modify-public user-read-currently-playing playlist-read-private playlist-modify-private' // streaming (only premium users)
+      'user-read-playback-state user-modify-playback-state playlist-read-collaborative user-read-email playlist-modify-public user-read-currently-playing playlist-read-private playlist-modify-private streaming user-read-private ' // streaming (only premium users)
 
     localStorage.setItem('spotifyAuth', 'true')
     window.location.replace(

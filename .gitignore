@@ -26,3 +26,5 @@ yarn-error.log*
 
 # hosting
 .firebase
+
+NOTES.txt
