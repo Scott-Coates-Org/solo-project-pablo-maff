@@ -246,9 +246,7 @@ const _deleteSongData = async (song) => {
     .doc(song.playlistId)
     .collection('songs')
     .doc(song.id)
-    .update({
-      songs: firebase.firestore.FieldValue.arrayRemove(song),
-    })
+    .delete()
 
   return doc
 }

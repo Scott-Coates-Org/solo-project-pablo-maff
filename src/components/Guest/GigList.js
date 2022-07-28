@@ -27,7 +27,7 @@ const GigList = () => {
 
   const joinGig = (playlistObj) => {
     dispatch(addGuestToPlaylist({ playlistObj, guest: guestName }))
-    navigate(`/gig/${playlistObj.id}`)
+    navigate(`/gig/guest/${playlistObj.id}`)
   }
 
   return (

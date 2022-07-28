@@ -19,16 +19,13 @@ function Player() {
 
   const token = userData.accessToken
 
-  // NEXT
-  // TODO: Add uri to queue instead of directly to player
-
-  // TODO: Remove song being played from the songs playlist
-  // TODO: Create Guest interface
+  // TODO: V2 Add uri to queue instead of directly to player
 
   return (
     <SpotifyPlayer
       token={token}
       callback={(state) => {
+        // state object contains other interesting stuff. I should change the way of handling the votes with this in V2
         if (!state.isPlaying) setPlay(false)
       }}
       play={play}

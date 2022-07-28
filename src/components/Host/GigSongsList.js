@@ -7,6 +7,7 @@ import { fetchSelectedPlaylistSongs, voteSong } from 'redux/song'
 
 function GigSongsList() {
   const [miliseconds, setMiliseconds] = useState(10000)
+  const [votesLeft, setVotesLeft] = useState(5)
 
   const playlistId = useMatch('/gig/:id').params.id
   const dispatch = useDispatch()
@@ -24,9 +25,10 @@ function GigSongsList() {
   const token = userData.accessToken
 
   useEffect(() => {
-    dispatch(nextSong(songData[0].uri))
+    dispatch(nextSong(songData[0]))
   }, [])
 
+  // TODO: For premium users gig use this method to set the playing in the remote player at the same time than host
   const getCurrentlyPlaying = async () => {
     const options = {
       method: 'GET',
@@ -42,16 +44,30 @@ function GigSongsList() {
     return response
   }
 
+  console.log('outside', miliseconds)
+
   useEffect(() => {
+    // TODO: This solution is full of bugs, change it to use the player callback on V2
     const interval = setInterval(() => {
       getCurrentlyPlaying()
         .then((res) => {
-          if (res.data.item.duration_ms - res.data.progress_ms <= 10000) {
-            dispatch(nextSong(songData[0].uri))
-            setMiliseconds(20000)
+          if (res.data.item.duration_ms - res.data.progress_ms <= 2000) {
+            console.log(
+              'nextTimeLeft',
+              res.data.item.duration_ms - res.data.progress_ms
+            )
+            console.log('next', miliseconds)
+            dispatch(nextSong(songData[0]))
+            setVotesLeft(5)
+            setMiliseconds(5000)
           } else {
+            console.log(
+              'waitTimeLeft',
+              res.data.item.duration_ms - res.data.progress_ms
+            )
+            console.log('wait', miliseconds)
             setMiliseconds(
-              res.data.item.duration_ms - res.data.progress_ms - 10000
+              res.data.item.duration_ms - res.data.progress_ms - 2000
             )
           }
         })
@@ -62,6 +78,7 @@ function GigSongsList() {
   }, [miliseconds, songData])
 
   function vote(songObj) {
+    setVotesLeft((prevVotes) => prevVotes - 1)
     dispatch(voteSong(songObj))
   }
 
@@ -69,11 +86,12 @@ function GigSongsList() {
     <>
       <h1>Gig on!</h1>
       <h3>{playlist.name}</h3>
+      <div>Votes Left: {votesLeft}</div>
       {songData.map((song) => (
         <div key={song.id}>
           <p>
             {song.name} {song.votes}
-            <button onClick={() => vote(song)}>Vote</button>
+            {votesLeft > 0 && <button onClick={() => vote(song)}>Vote</button>}
           </p>
         </div>
       ))}

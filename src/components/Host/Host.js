@@ -127,6 +127,7 @@ function Host() {
         url: song.track.external_urls.spotify,
         votes: 0,
         playlistId: playlist.id,
+        isPlaying: false,
       }
     })
     const playlistWithSongs = { ...playlist, songs: parsedSongs }

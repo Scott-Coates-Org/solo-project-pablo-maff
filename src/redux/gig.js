@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import firebaseClient from 'firebase/client'
-import firebase from 'firebase/app'
+import { deleteSong } from './song'
 
 const initialState = {
   data: {},
@@ -110,8 +110,43 @@ export const {
 
 export const nextSong = createAsyncThunk(
   'gig/nextSong',
-  async (nextSongUri, thunkAPI) => {
+  async (songObj, thunkAPI) => {
     thunkAPI.dispatch(createData())
-    thunkAPI.dispatch(createDataSuccess({ nextSongUri }))
+    try {
+      const updatedSongObj = { ...songObj, isPlaying: true }
+      thunkAPI.dispatch(createDataSuccess({ nextSongUri: updatedSongObj.uri }))
+      await _createCurrentSong(updatedSongObj)
+      thunkAPI.dispatch(deleteSong(songObj))
+    } catch (err) {
+      thunkAPI.dispatch(createDataFailure(err))
+    }
   }
 )
+
+export const fetchCurrentSong = createAsyncThunk(
+  'gig/fetchCurrentSong',
+  async (_, thunkAPI) => {
+    thunkAPI.dispatch(getData())
+    try {
+      await firebaseClient
+        .firestore()
+        .collection('gig')
+        .doc('1')
+        .onSnapshot((doc) => {
+          thunkAPI.dispatch(getDataSuccess(doc.data()))
+        })
+    } catch (error) {
+      thunkAPI.dispatch(getDataFailure(error))
+    }
+  }
+)
+
+const _createCurrentSong = async (songObj) => {
+  const doc = await firebaseClient
+    .firestore()
+    .collection('gig')
+    .doc('1')
+    .set(songObj)
+
+  return doc
+}
